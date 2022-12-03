@@ -14,14 +14,30 @@
 ; @date: 2022-11-11
 ;
 ;=======================================================================================
-
          LDA     0,i
          LDX     0,i
 
 ;------------------------------------------------------------------------------------
 ; Demander les dimensions de la grille et son contenu initial 
 ; nb de caractère à entrer = produit des dimensions
-
+;
+; alloue de la donnee dans le tas
+;
+; Parametres:
+; A <- taille a allouer(octets)
+;
+; Retourne:
+; X <- pointeur vers la donnee allouee
+malloc:  SUBSP   2,i
+         LDX     currHp,d
+         STX     0,s
+         ADDA    0,s
+         STA     currHp,d
+         RET2
+;
+currHp:  .ADDRSS heap        ; Pointeur vers le prochain octete libre du tas
+heap:    .BLOCK  1           ; Debut du tas
+ 
 ;------------------------------------------------------------------------------------
 ; Créer les commandes
 ; h: Afficher un message d'aide
