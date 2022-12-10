@@ -1,4 +1,4 @@
-;=======================================================================================
+;======================================================================================= 
 ;
 ; Ce programme implémente un jeu de puzzel intitulé 'Flood', une idée de Simon Tatham.
 ; En effet, ce jeu consiste à avoir une table remplis de carreaux de couleur et le but
@@ -17,26 +17,7 @@
          LDA     0,i
          LDX     0,i
 
-;------------------------------------------------------------------------------------
-; Demander les dimensions de la grille et son contenu initial 
-; nb de caractère à entrer = produit des dimensions
-;
-; alloue de la donnee dans le tas
-;
-; Parametres:
-; A <- taille a allouer(octets)
-;
-; Retourne:
-; X <- pointeur vers la donnee allouee
-malloc:  SUBSP   2,i
-         LDX     currHp,d
-         STX     0,s
-         ADDA    0,s
-         STA     currHp,d
-         RET2
-;
-currHp:  .ADDRSS heap        ; Pointeur vers le prochain octete libre du tas
-heap:    .BLOCK  1           ; Debut du tas
+
  
 ;------------------------------------------------------------------------------------
 ; Créer les commandes
@@ -45,6 +26,29 @@ heap:    .BLOCK  1           ; Debut du tas
 ; q: Quitter le programme avec un message de sortie
 ; n: Jouer un nouveau coup - accepter une couleur pour avancer dans résolution de la 
 ;    grille
+
+lineGri: .EQUATE 0           ;#2d
+coloGri: .EQUATE 2           ;#2d
+grille:  .EQUATE 4           ;#2d
+commande:.EQUATE 6           ;#2d
+
+         SUBSP   8,i         ;#commande #grille #coloGri #lineGri 
+         STRO    msgBienv,d
+         STRO    msgDim,d
+         STRO    msgLin,d
+         DECI    lineGri,s
+         STRO    msgCol,d
+         DECI    coloGri,s
+         CHARI   grille,s 
+
+
+
+;------------------------------------------------------------------------------------
+; Demander les dimensions de la grille et son contenu initial 
+; nb de caractère à entrer = produit des dimensions
+;
+
+
 
 ;------------------------------------------------------------------------------------
 ; Chaînes de caractère à utiliser dans les sous programmes
@@ -64,4 +68,22 @@ msgBye:  .ASCII  "Bye bye. \x00"
 msgICoup:.ASCII  "Coup Invalide: vous devez entrer une des couleurs supportees\n\x00"
 msgWin:  .ASCII  "Vous avez gagne en \x00"
 msgNbC:  .ASCII  " coups\n\x00"
+;=====================================================================================
+; MALLOC: alloue de la donnee dans le tas
+;
+; Parametres:
+; A <- taille a allouer(octets)
+;
+; Retourne:
+; X <- pointeur vers la donnee allouee
+;malloc:  SUBSP   2,i 
+         LDX     currHp,d
+         STX     0,s
+         ADDA    0,s
+         STA     currHp,d
+;         RET2 
+;
+currHp:  .ADDRSS heap        ; Pointeur vers le prochain octete libre du tas
+heap:    .BLOCK  1           ; Debut du tas
  
+         .END
