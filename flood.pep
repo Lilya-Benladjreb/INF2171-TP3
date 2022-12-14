@@ -30,11 +30,10 @@ specsX:  .EQUATE 0           ;#2d
 lenX:    .EQUATE 2           ;#2d
 lenY:    .EQUATE 4           ;#2d
 chaGrill:.EQUATE 6           ;#2h
-dbtGrill:.EQUATE 8           ;#2d
-iterTemp:.EQUATE 10          ;#2d
-iteraX:  .EQUATE 12          ;#2d
-iteraY:  .EQUATE 14          ;#2d
-proCommd:.EQUATE 16          ;#2h
+iterTemp:.EQUATE 8           ;#2d
+iteraX:  .EQUATE 10          ;#2d
+iteraY:  .EQUATE 12          ;#2d
+proCommd:.EQUATE 14          ;#2h
 
 ajout1:  .EQUATE 0           ;#2h
 line:    .EQUATE 0           ;#2h
@@ -43,7 +42,7 @@ line:    .EQUATE 0           ;#2h
 ; Créer une pile avec les infos de la grille
 ;
 ;
-         SUBSP   18,i         ;#proCommd #iteraY #iteraX #iterTemp #dbtGrill #chaGrill #lenY #lenX #specsX 
+         SUBSP   16,i         ;#proCommd #iteraY #iteraX #iterTemp #chaGrill #lenY #lenX #specsX 
          STRO    msgBienv,d
          STRO    msgDim,d
          STRO    msgLin,d
@@ -111,7 +110,23 @@ finLine: LDA     0,i         ; Restaurer à 0 l'itération Y
 ; On fait appel à la bonne méthode selon la prochaine commande de l'utilisateur.
 ;
 ;
-prochCom:STRO    msgPComm,d
+tempLine:.EQUATE 0           ;#2h
+iterLine:.EQUATE 2           ;#2d
+
+         LDA     specsX,sx   ; Mettre dans la variable specsX le nouvel emplacement des informations de la grille
+         ADDA    4,i
+         STA     specsX,d
+         STA     specsX,sx
+
+         SUBSP   4,i         ; Ajouter deux éléments dans la pile pour m'aider à me promener dans la grille #iterLine #tempLine
+         ADDX    2,i
+         STX     iterLine,s  ; Rechercher et stocker l'itération d'où se retrouve la première ligne de la grille
+
+
+;------------------------------------------------
+;
+prochCom:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
+         STRO    msgPComm,d
          CHARI   proCommd,sx ; Prendre la commande de l'utilisateur
          LDBYTEA proCommd,sx
          STA     proCommd,sx ; Stocker une commande à la fois dans la pile
@@ -122,9 +137,9 @@ prochCom:STRO    msgPComm,d
          CPA     'h',i
          BREQ    help        ; Si on a besoin d'aide
          CPA     'p',i
-         BREQ    affGrill    ; Si on veut afficher la grille à l'état actuel
+         BREQ    lirGrill    ; Si on veut afficher la grille à l'état actuel
          CPA     'n',i
-         BREQ    prCoup      ; Jouer avec le prochain coup
+         BREQ    lirGrill    ; Jouer avec le prochain coup
          BR      prochCom    ; On recommence la boucle pour avoir la prochaine commande
 
 ;===============================================================================
@@ -145,29 +160,17 @@ help:    STRO    msgAide,d
          BR      prochCom
 
 ;===============================================================================
-; Afficher la grille actuelle
+; Lire la grille actuelle
 ;
 ;
-tempLine:.EQUATE 0           ;#2h
-iterLine:.EQUATE 2           ;#2d
 
-affGrill:LDA     specsX,sx   ; Mettre dans la variable specsX le nouvel emplacement des informations de la grille
-         ADDA    4,i
-         STA     specsX,d
-         STA     specsX,sx
 
-         SUBSP   4,i         ; Ajouter deux éléments dans la pile pour m'aider à me promener dans la grille #iterLine #tempLine
-         ADDX    2,i
-         STX     iterLine,s  ; Rechercher et stocker l'itération d'où se retrouve la première ligne de la grille
+lirGrill:LDX     iterLine,s
 nxtLine: LDA     line,sx
          STA     line,s      ; Mettre dans le registre A et stocker l'adresse de la ligne en question
 
-         LDX     specsX,d    ; Se placer où les infos de la grille sont situés
-loopAff: LDX     iterTemp,sx ; Mettre dans le registre X la position du charactère à aller chercher dans la ligne
-
-         CHARO   line,sxf    ; Afficher le charactère
-         
-         LDX     specsX,d    ; Se placer où les infos de la grille sont situés
+loopLir: BR      action         
+avPrChar:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 
          LDA     iterTemp,sx
          ADDA    2,i
@@ -177,7 +180,7 @@ loopAff: LDX     iterTemp,sx ; Mettre dans le registre X la position du charactè
          ADDA    1,i
          STA     iteraX,sx   ; Incrémenter et sauvegarder la prochaine itération X du nombre de fois qu'on a passé à travers la ligne
          CPA     lenX,sx
-         BRNE    loopAff     ; Recommencer la loop pour afficher le prochain charactère
+         BRNE    loopLir     ; Recommencer la loop pour afficher le prochain charactère
 
 ;-------------------------------------------------------------------
 ; Si on a atteint la longueur de la ligne, passer à la prochaine ligne
@@ -200,7 +203,20 @@ loopAff: LDX     iterTemp,sx ; Mettre dans le registre X la position du charactè
           
 finAffi: LDA     0,i         ; Restaurer à 0 l'itération Y (nb de fois passé à travers les lignes)
          STA     iteraY,sx
-         BR      prochCom    ; On passe à la prochaine commande
+         BR      avPrCom    ; On passe à la prochaine commande
+
+
+
+
+action:  LDX     specsX,d    ; Se placer où les infos de la grille sont situés
+
+         LDA     proCommd,sx
+         CPA     'n',i
+         BREQ    prCoup
+
+         LDX     iterTemp,sx ; Mettre dans le registre X la position du charactère à aller chercher dans la ligne
+         CHARO   line,sxf    ; Afficher le charactère
+         BR      avPrChar    ; Préparer le prochain charactère 
 
 ;===============================================================================
 ; Exécuter un coup
@@ -208,8 +224,17 @@ finAffi: LDA     0,i         ; Restaurer à 0 l'itération Y (nb de fois passé à t
 ;
 prCoup:  CHARO   '\n',i
          CHARO   '\n',i
-         BR      prochCom
+         BR      avPrCom
 
+
+;===============================================================================
+; Remettre le compteur iterLine à l'adresse du premier élément
+;
+;
+avPrCom: LDX     specsX,d
+         SUBX    2,i
+         STX     iterLine,s
+         BR      prochCom
 
 ;------------------------------------------------------------------------------------
 ; Chaînes de caractère à utiliser dans les sous programmes
