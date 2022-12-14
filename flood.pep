@@ -18,7 +18,6 @@
          LDX     0,i
 
 
- 
 ;------------------------------------------------------------------------------------
 ; Créer les commandes
 ; h: Afficher un message d'aide
@@ -27,27 +26,189 @@
 ; n: Jouer un nouveau coup - accepter une couleur pour avancer dans résolution de la 
 ;    grille
 
-lineGri: .EQUATE 0           ;#2d
-coloGri: .EQUATE 2           ;#2d
-grille:  .EQUATE 4           ;#2d
-commande:.EQUATE 6           ;#2d
+specsX:  .EQUATE 0           ;#2d
+lenX:    .EQUATE 2           ;#2d
+lenY:    .EQUATE 4           ;#2d
+chaGrill:.EQUATE 6           ;#2h
+dbtGrill:.EQUATE 8           ;#2d
+iterTemp:.EQUATE 10          ;#2d
+iteraX:  .EQUATE 12          ;#2d
+iteraY:  .EQUATE 14          ;#2d
+proCommd:.EQUATE 16          ;#2h
 
-         SUBSP   8,i         ;#commande #grille #coloGri #lineGri 
+ajout1:  .EQUATE 0           ;#2h
+line:    .EQUATE 0           ;#2h
+
+;===============================================================================
+; Créer une pile avec les infos de la grille
+;
+;
+         SUBSP   18,i         ;#proCommd #iteraY #iteraX #iterTemp #dbtGrill #chaGrill #lenY #lenX #specsX 
          STRO    msgBienv,d
          STRO    msgDim,d
          STRO    msgLin,d
-         DECI    lineGri,s
+         DECI    lenY,s      ; Entrer le nombre de ligne
          STRO    msgCol,d
-         DECI    coloGri,s
-         CHARI   grille,s 
+         DECI    lenX,s      ; Entrer la longueur de la ligne
 
 
-
-;------------------------------------------------------------------------------------
-; Demander les dimensions de la grille et son contenu initial 
-; nb de caractère à entrer = produit des dimensions
+;===============================================================================
+; Créer la grille
 ;
+;
+         LDX     2,i         ; Mettre dans la variable specsX l'emplacement des informations de la grille
+         STX     specsX,d
+         STX     specsX,s
+loopLine:LDA     lenX,sx     ; Mettre dans le registre A la longueur de la ligne
+         CALL    malloc
+         SUBSP   2,i         ; Créer une ligne de la grille #line
+         STX     line,s      ; Sauvegarder dans la variable line l'adresse de la ligne
+         LDX     specsX,d
+         LDA     iteraX,sx
 
+alimGri: CPA     lenX,sx
+         BREQ    newLine     ; Vérifier si la longueur de la ligne a atteint son maximum
+         CHARI   chaGrill,sx
+         LDBYTEA chaGrill,sx   ; Mettre dans le registre A un charactère de la grille
+
+         LDX     iterTemp,sx
+         STBYTEA line,sxf    ; Stocker le charactère à l'adresse de la ligne en question à la position X
+
+         LDX     specsX,d    ; Se placer où les infos de la grille sont situés
+
+         LDA     iterTemp,sx
+         ADDA    2,i
+         STA     iterTemp,sx ; Sauvegarder le prochain espacement de la ligne
+
+         LDA     iteraX,sx
+         ADDA    1,i
+         STA     iteraX,sx   ; Sauvegarder la prochaine itération X pour éventuellement la comparer à la longueur de la ligne
+
+         BR      alimGri     ; On passe au prochain charactère
+
+newLine: LDA     0,i         ; Restaurer à 0 l'itération temporaire et l'itération X
+         STA     iterTemp,sx
+         STA     iteraX,sx
+
+         LDA     iteraY,sx   ; Sauvegarder la prochaine itération Y pour éventuellement la comparer au nombre maximal de ligne
+         ADDA    1,i
+         STA     iteraY,sx
+         CPA     lenY,sx
+         BREQ    finLine     ; Vérifier si on a le bon nombre de ligne
+
+         LDA     specsX,sx   ; Mettre dans la variable specsX le nouvel emplacement des informations de la grille
+         ADDA    2,i
+         STA     specsX,d
+         STA     specsX,sx
+
+         BR      loopLine    ; On recommence le processus de création d'une ligne
+
+finLine: LDA     0,i         ; Restaurer à 0 l'itération Y
+         STA     iteraY,sx
+         CHARI   chaGrill,sx
+
+;===============================================================================
+; On fait appel à la bonne méthode selon la prochaine commande de l'utilisateur.
+;
+;
+prochCom:STRO    msgPComm,d
+         CHARI   proCommd,sx ; Prendre la commande de l'utilisateur
+         LDBYTEA proCommd,sx
+         STA     proCommd,sx ; Stocker une commande à la fois dans la pile
+         CPA     '\n',i
+         BREQ    prochCom    ; Si on fait ENTER, on redemande une commande à l'utilisateur
+         CPA     'q',i
+         BREQ    fin         ; Si c'est la fin du programme
+         CPA     'h',i
+         BREQ    help        ; Si on a besoin d'aide
+         CPA     'p',i
+         BREQ    affGrill    ; Si on veut afficher la grille à l'état actuel
+         CPA     'n',i
+         BREQ    prCoup      ; Jouer avec le prochain coup
+         BR      prochCom    ; On recommence la boucle pour avoir la prochaine commande
+
+;===============================================================================
+; Mettre fin au programme
+;
+;
+fin:     STOP
+
+;===============================================================================
+; Afficher l'aide
+;
+;
+help:    STRO    msgAide,d
+         STRO    msgH,d
+         STRO    msgP,d
+         STRO    msgN,d
+         STRO    msgQ,d
+         BR      prochCom
+
+;===============================================================================
+; Afficher la grille actuelle
+;
+;
+tempLine:.EQUATE 0           ;#2h
+iterLine:.EQUATE 2           ;#2d
+
+affGrill:LDA     specsX,sx   ; Mettre dans la variable specsX le nouvel emplacement des informations de la grille
+         ADDA    4,i
+         STA     specsX,d
+         STA     specsX,sx
+
+         SUBSP   4,i         ; Ajouter deux éléments dans la pile pour m'aider à me promener dans la grille #iterLine #tempLine
+         ADDX    2,i
+         STX     iterLine,s  ; Rechercher et stocker l'itération d'où se retrouve la première ligne de la grille
+nxtLine: LDA     line,sx
+         STA     line,s      ; Mettre dans le registre A et stocker l'adresse de la ligne en question
+
+         LDX     specsX,d    ; Se placer où les infos de la grille sont situés
+loopAff: LDX     iterTemp,sx ; Mettre dans le registre X la position du charactère à aller chercher dans la ligne
+
+         CHARO   line,sxf    ; Afficher le charactère
+         
+         LDX     specsX,d    ; Se placer où les infos de la grille sont situés
+
+         LDA     iterTemp,sx
+         ADDA    2,i
+         STA     iterTemp,sx ; Sauvegarder la prochaine position du charactère à aller chercher
+
+         LDA     iteraX,sx
+         ADDA    1,i
+         STA     iteraX,sx   ; Incrémenter et sauvegarder la prochaine itération X du nombre de fois qu'on a passé à travers la ligne
+         CPA     lenX,sx
+         BRNE    loopAff     ; Recommencer la loop pour afficher le prochain charactère
+
+;-------------------------------------------------------------------
+; Si on a atteint la longueur de la ligne, passer à la prochaine ligne
+;
+         CHARO   '\n',i      ; Passer à la prochaine ligne
+         LDA     0,i
+         STA     iterTemp,sx ; Restaurer à 0 l'itération temporaire (la position dans la ligne)
+         STA     iteraX,sx   ; et l'itération X (nb de fois passé à travers la ligne)
+
+         LDA     iteraY,sx
+         ADDA    1,i
+         STA     iteraY,sx   ; Incrémenter et sauvegarder le nombre de fois passé à travers les lignes
+         CPA     lenY,sx
+         BREQ    finAffi     ; Vérifier si on a atteint le nombre de ligne maximal
+
+         LDX     iterLine,s
+         SUBX    2,i
+         STX     iterLine,s  ; Rechercher et stocker la position de la ligne suivante
+         BR      nxtLine     ; Passer à la ligne suivante
+          
+finAffi: LDA     0,i         ; Restaurer à 0 l'itération Y (nb de fois passé à travers les lignes)
+         STA     iteraY,sx
+         BR      prochCom    ; On passe à la prochaine commande
+
+;===============================================================================
+; Exécuter un coup
+;
+;
+prCoup:  CHARO   '\n',i
+         CHARO   '\n',i
+         BR      prochCom
 
 
 ;------------------------------------------------------------------------------------
@@ -68,22 +229,27 @@ msgBye:  .ASCII  "Bye bye. \x00"
 msgICoup:.ASCII  "Coup Invalide: vous devez entrer une des couleurs supportees\n\x00"
 msgWin:  .ASCII  "Vous avez gagne en \x00"
 msgNbC:  .ASCII  " coups\n\x00"
-;=====================================================================================
-; MALLOC: alloue de la donnee dans le tas
+
+
+;------------------------------------------------------------------------------------
+; Demander les dimensions de la grille et son contenu initial 
+; nb de caractère à entrer = produit des dimensions
+;
+; alloue de la donnee dans le tas
 ;
 ; Parametres:
 ; A <- taille a allouer(octets)
 ;
 ; Retourne:
 ; X <- pointeur vers la donnee allouee
-;malloc:  SUBSP   2,i 
+malloc:  SUBSP   2,i         ;#ajout1
          LDX     currHp,d
          STX     0,s
          ADDA    0,s
          STA     currHp,d
-;         RET2 
+         RET2                ;#ajout1 
 ;
 currHp:  .ADDRSS heap        ; Pointeur vers le prochain octete libre du tas
-heap:    .BLOCK  1           ; Debut du tas
- 
+heap:    .BLOCK  1           ; Debut du tas   #1h
+
          .END
