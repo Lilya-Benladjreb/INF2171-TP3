@@ -19,12 +19,13 @@
 
 
 ;------------------------------------------------------------------------------------
-; Créer les commandes
-; h: Afficher un message d'aide
-; p: Affichrer la grille courante
-; q: Quitter le programme avec un message de sortie
-; n: Jouer un nouveau coup - accepter une couleur pour avancer dans résolution de la 
-;    grille
+; Initialiser les variables dynamique pour la pile
+;
+; Parametres:
+; Aucun
+;
+; Retourne:
+; void
 
 specsX:  .EQUATE 0           ;#2d
 lenX:    .EQUATE 2           ;#2d
@@ -41,6 +42,11 @@ line:    .EQUATE 0           ;#2h
 ;===============================================================================
 ; Créer une pile avec les infos de la grille
 ;
+; Parametres:
+; Aucun
+;
+; Retourne:
+; void
 ;
          SUBSP   16,i         ;#proCommd #iteraY #iteraX #iterTemp #chaGrill #lenY #lenX #specsX 
          STRO    msgBienv,d
@@ -52,8 +58,13 @@ line:    .EQUATE 0           ;#2h
 
 
 ;===============================================================================
-; Créer la grille
+; Créer la grille qui contient les couleurs
 ;
+; Parametres:
+; Aucun
+; 
+; Retourne:
+; void
 ;
          LDX     2,i         ; Mettre dans la variable specsX l'emplacement des informations de la grille
          STX     specsX,d
@@ -109,7 +120,13 @@ finLine: LDA     0,i         ; Restaurer à 0 l'itération Y
 ;===============================================================================
 ; On fait appel à la bonne méthode selon la prochaine commande de l'utilisateur.
 ;
+; Parametres:
+; A <- adresse de la nouvelle ligne
 ;
+; Retourne:
+; X <- compteur de ligne
+;
+
 tempLine:.EQUATE 0           ;#2h
 iterLine:.EQUATE 2           ;#2d
 
@@ -124,6 +141,12 @@ iterLine:.EQUATE 2           ;#2d
 
 
 ;------------------------------------------------
+; Créer les commandes
+; h: Afficher un message d'aide
+; p: Affichrer la grille courante
+; q: Quitter le programme avec un message de sortie
+; n: Jouer un nouveau coup - accepter une couleur pour avancer dans résolution de la 
+;    grille
 ;
 prochCom:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
          STRO    msgPComm,d
@@ -145,24 +168,38 @@ prochCom:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 ;===============================================================================
 ; Mettre fin au programme
 ;
+; Parametres:
+; Aucun
 ;
+; Retourne:
+; void
 fin:     STOP
 
 ;===============================================================================
 ; Afficher l'aide
 ;
+; Parametres:
+; Aucun
 ;
-help:    STRO    msgAide,d
-         STRO    msgH,d
-         STRO    msgP,d
-         STRO    msgN,d
-         STRO    msgQ,d
+; Retourne:
+; void
+;
+
+help:    STRO    msgAide,d   ; Affiche le manuel d'aide avant de lire la prochaine commande
+         STRO    msgH,d      ; commande h
+         STRO    msgP,d      ; commande p
+         STRO    msgN,d      ; commande n
+         STRO    msgQ,d      ; commande q
          BR      prochCom
 
 ;===============================================================================
 ; Lire la grille actuelle
 ;
+; Parametres:
+; A <- 
 ;
+; Retourne:
+; X <- 
 
 
 lirGrill:LDX     iterLine,s
@@ -196,7 +233,7 @@ avPrChar:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
          CPA     lenY,sx
          BREQ    finAffi     ; Vérifier si on a atteint le nombre de ligne maximal
 
-         LDX     iterLine,s
+         LDX     iterLine,s  ; Remetre le compteur de ligne au bon endroit dans la pile
          SUBX    2,i
          STX     iterLine,s  ; Rechercher et stocker la position de la ligne suivante
          BR      nxtLine     ; Passer à la ligne suivante
@@ -210,7 +247,7 @@ finAffi: LDA     0,i         ; Restaurer à 0 l'itération Y (nb de fois passé à t
 
 action:  LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 
-         LDA     proCommd,sx
+         LDA     proCommd,sx ; Determiner si on est rendu a la fin de la ligne
          CPA     'n',i
          BREQ    prCoup
 
@@ -221,7 +258,12 @@ action:  LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 ;===============================================================================
 ; Exécuter un coup
 ;
+; Parametres:
+; A <- 
 ;
+; Retourne:
+; X <- 
+
 prCoup:  CHARO   '\n',i
          CHARO   '\n',i
          BR      avPrCom
@@ -230,8 +272,13 @@ prCoup:  CHARO   '\n',i
 ;===============================================================================
 ; Remettre le compteur iterLine à l'adresse du premier élément
 ;
+; Parametres:
+; X <- le compteur interLine
 ;
-avPrCom: LDX     specsX,d
+; Retourne:
+; X <- l'adresse du premier element de la ligne
+;
+avPrCom: LDX     specsX,d    ; Enlever 1 octet du compteur de ligne et le stocker
          SUBX    2,i
          STX     iterLine,s
          BR      prochCom
@@ -258,7 +305,6 @@ msgNbC:  .ASCII  " coups\n\x00"
 
 ;------------------------------------------------------------------------------------
 ; Demander les dimensions de la grille et son contenu initial 
-; nb de caractère à entrer = produit des dimensions
 ;
 ; alloue de la donnee dans le tas
 ;
