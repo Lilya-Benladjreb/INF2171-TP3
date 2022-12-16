@@ -215,10 +215,11 @@ help:    STRO    msgAide,d   ; Affiche le manuel d'aide avant de lire la prochai
 ; Lire la grille actuelle
 ;
 ; Parametres:
-; A <- 
+; X <- la position dans la ligne
+; A <- la valeur de la ligne
 ;
 ; Retourne:
-; X <- 
+; X <- position du prochain caractere 
 
 
 lirGrill:LDX     iterLine,s
@@ -291,10 +292,10 @@ affGrill:LDX     specsX,d
 ; Exécuter un coup
 ;
 ; Parametres:
-; A <- 
+; A <- la chaine de caractere pour les commandes
 ;
 ; Retourne:
-; X <- 
+; A <- le prochain coup a effectuer
 
 prCoup:  CHARI   commande,sx ; Obtenir la couleur à traiter
          LDBYTEA commande,sx
