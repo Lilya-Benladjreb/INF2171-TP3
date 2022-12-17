@@ -174,7 +174,7 @@ prochCom:LDA     0,i
          STA     commande,sx ; Stocker une commande à la fois dans la pile (commande actuelle)
          STA     comndIni,sx ; Stocker une commande à la fois dans la pile (commande initiale) **Va servir lorsqu'on va jouer un coup**
          CPA     '\n',i
-         BREQ    prochCom    ; Si on fait ENTER, on redemande une commande à l'utilisateur
+         BREQ    finJeu    ; Si on fait ENTER, on redemande une commande à l'utilisateur
          CPA     'q',i
          BREQ    fin         ; Si c'est la fin du programme
          CPA     'h',i
@@ -254,6 +254,7 @@ viderIte:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 vider:   LDA     0,i
          STA     iterTemp,sx ; Restaurer à 0 l'itération temporaire (la position dans la ligne)
          STA     iteraX,sx   ; et l'itération X (nb de fois passé à travers la ligne)
+         STA     cptMax,sx
 
          LDA     iteraY,sx
          ADDA    1,i
@@ -452,7 +453,6 @@ modifier:LDX     specsX,d
          LDA     maxX,sx     ; Si maxX == longueur des X (Dernier charactère de la ligne)
          CPA     lenX,sx     ; Alors aller à la fonction maxXLen
          BREQ    maxXLen
-
          BR      avPrChar    ; Sinon, passer au prochain charactère
 
 ;------------------------------------------------------------------------------------
@@ -488,14 +488,9 @@ skipLine:LDA     maxX,sx     ; Si première ligne
          STA     maxXAv,sx   ; Sauvegarder la position maximum d'où on s'est rendu
          LDA     0,i
          STA     maxX,sx     ; Réinitialiser la position maximal temporaire à zéro
-         LDA     iteraY,sx
-         ADDA    1,i
-         CPA     lenY,sx
-         BREQ    cptMxZer
+         ;STA     cptMax,sx   ; Réinitialiser le compteur de lignes pleines
          BR      viderIte    ; Et passer à la ligne suivante
 
-cptMxZer:LDA     0,i
-         STA     cptMxZer,sx
 ;------------------------------------------------------------------------------------
 ; On passe au charactère suivant
 ;
