@@ -182,7 +182,7 @@ prochCom:LDA     0,i
          BREQ    lirGrill    ; Si on veut afficher la grille à l'état actuel
          CPA     'n',i
          BREQ    prCoup      ; Si on veut jouer un coup
-         BR      prochCom    ; Si aucune de ces réponses, on recommence la boucle pour obtenir une commande valide
+         BR      commInv     ; Si aucune de ces reponses, commande invalide
 
 ;===============================================================================
 ; Mettre fin au programme
@@ -192,7 +192,24 @@ prochCom:LDA     0,i
 ;
 ; Retourne:
 ; void
-fin:     STOP
+fin:     STRO    msgBye,d    ; Afficher le message de aurevoir
+         STOP
+
+;===============================================================================
+; Afficher message d'erreurs
+;
+; Parametres:
+; Aucun
+;
+; Retourne:
+; void
+;
+commInv: STRO    msgIComm,d  ; Afficher message commande invalide 
+         BR      prochCom    ; On recommence la boucle pour obtenir une commande valide
+
+coupInv: STRO    msgICoup,d  ; Afficher message couleur invalide
+         BR      fin          
+
 
 ;===============================================================================
 ; Afficher l'aide
@@ -300,7 +317,21 @@ affGrill:LDX     specsX,d
 prCoup:  CHARI   commande,sx ; Obtenir la couleur à traiter
          LDBYTEA commande,sx
          STA     commande,sx
-         BR      lirGrill    ; Lire la grille pour obtenir un charactère
+         CPA     'R',i       
+         BREQ    stkCol      ; si R, stocker la couleur
+         CPA     'G',i
+         BREQ    stkCol      ; si G, stoker la couleur
+         CPA     'B',i
+         BREQ    stkCol      ; si B, stoker la couleur
+         CPA     'O',i
+         BREQ    stkCol      ; si O, stoker la couleur
+         CPA     'Y',i
+         BREQ    stkCol      ; si Y, stoker la couleur
+         CPA     'V',i
+         BREQ    stkCol      ; si V, stoker la couleur
+         BR      coupInv
+
+stkCol:  BR      lirGrill    ; Lire la grille pour obtenir un charactère
 
 ;------------------------------------------------------------------------------------
 ; Enclencher le processus de modifiction pour la charactère obtenue
@@ -318,8 +349,8 @@ coup:    LDA     iteraY,sx   ; Si y != 0 ce n'est pas la première ligne
 ;
 stkFirst:LDX     iterTemp,sx 
          LDBYTEA tempLine,sxf; Se placer a la hauteur de la du debut de la grille
-         LDX     specsX,d    ; stocker la couleur dans sa valeur
-         STA     couleur,sx  
+         LDX     specsX,d            
+         STA     couleur,sx  ; stocker la couleur dans sa valeur
          BR      isModif     ; verifier si la couleur a ete modifie
 
 ;------------------------------------------------------------------------------------
