@@ -35,13 +35,15 @@ iterTemp:.EQUATE 8           ;#2d
 iteraX:  .EQUATE 10          ;#2d
 iteraY:  .EQUATE 12          ;#2d
 commande:.EQUATE 14          ;#2h
-couleur: .EQUATE 16          ;#2h
-iteTmpAv:.EQUATE 18          ;#2d
-charHaut:.EQUATE 20          ;#2h
-charGau: .EQUATE 22          ;#2h
-maxXAv:  .EQUATE 24          ;#2d
-maxX:    .EQUATE 26          ;#2d
-comndIni:.EQUATE 28          ;#2h
+coulrAv: .EQUATE 16          ;#2h
+couleur: .EQUATE 18          ;#2h
+iteTmpAv:.EQUATE 20          ;#2d
+charHaut:.EQUATE 22          ;#2h
+charGau: .EQUATE 24          ;#2h
+maxXAv:  .EQUATE 26          ;#2d
+maxX:    .EQUATE 28          ;#2d
+comndIni:.EQUATE 30          ;#2h
+cptCoup: .EQUATE 32          ;#2d
 
 ajout:   .EQUATE 0           ;#2h
 line:    .EQUATE 0           ;#2h
@@ -55,7 +57,7 @@ line:    .EQUATE 0           ;#2h
 ; Retourne:
 ; void
 ;
-         SUBSP   30,i         ;#comndIni #maxX #maxXAv #charGau #charHaut #iteTmpAv #couleur #commande #iteraY #iteraX #iterTemp #chaGrill #lenY #lenX #specsX 
+         SUBSP   34,i         ;#cptCoup #comndIni #maxX #maxXAv #charGau #charHaut #iteTmpAv #couleur #coulrAv #commande #iteraY #iteraX #iterTemp #chaGrill #lenY #lenX #specsX 
          STRO    msgBienv,d
          STRO    msgDim,d
          STRO    msgLin,d
@@ -182,7 +184,8 @@ prochCom:LDA     0,i
          BREQ    lirGrill    ; Si on veut afficher la grille à l'état actuel
          CPA     'n',i
          BREQ    prCoup      ; Si on veut jouer un coup
-         BR      commInv     ; Si aucune de ces reponses, commande invalide
+         STRO    msgIComm,d  ; Afficher message commande invalide
+         BR      prochCom    ; On recommence la boucle pour obtenir une commande valide
 
 ;===============================================================================
 ; Mettre fin au programme
@@ -194,22 +197,6 @@ prochCom:LDA     0,i
 ; void
 fin:     STRO    msgBye,d    ; Afficher le message de aurevoir
          STOP
-
-;===============================================================================
-; Afficher message d'erreurs
-;
-; Parametres:
-; Aucun
-;
-; Retourne:
-; void
-;
-commInv: STRO    msgIComm,d  ; Afficher message commande invalide 
-         BR      prochCom    ; On recommence la boucle pour obtenir une commande valide
-
-coupInv: STRO    msgICoup,d  ; Afficher message couleur invalide
-         BR      fin          
-
 
 ;===============================================================================
 ; Afficher l'aide
@@ -288,8 +275,6 @@ finLire: LDA     0,i         ; Restaurer à 0 l'itération Y (nb de fois passé à t
          BR      avPrCom    ; On fait un traitement avant de passer à la prochaine commande
 
 
-
-
 isCommnd:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
          LDA     comndIni,sx
          CPA     'n',i
@@ -317,26 +302,37 @@ affGrill:LDX     specsX,d
 prCoup:  CHARI   commande,sx ; Obtenir la couleur à traiter
          LDBYTEA commande,sx
          STA     commande,sx
+         CPA     coulrAv,sx  ; Si commande (Couleur Actuel) == couleur (Couleur Precedente)
+         BREQ    coulInch    ; Alors  c'est invalide
          CPA     'R',i       
-         BREQ    stkCol      ; si R, stocker la couleur
+         BREQ    cpValid     ; si R, stocker la couleur
          CPA     'G',i
-         BREQ    stkCol      ; si G, stoker la couleur
+         BREQ    cpValid     ; si G, stoker la couleur
          CPA     'B',i
-         BREQ    stkCol      ; si B, stoker la couleur
+         BREQ    cpValid     ; si B, stoker la couleur
          CPA     'O',i
-         BREQ    stkCol      ; si O, stoker la couleur
+         BREQ    cpValid     ; si O, stoker la couleur
          CPA     'Y',i
-         BREQ    stkCol      ; si Y, stoker la couleur
+         BREQ    cpValid     ; si Y, stoker la couleur
          CPA     'V',i
-         BREQ    stkCol      ; si V, stoker la couleur
-         BR      coupInv
+         BREQ    cpValid     ; si V, stoker la couleur
+         STRO    msgSCoup,d  ; Afficher message couleur invalide
+         BR      prochCom
 
-stkCol:  BR      lirGrill    ; Lire la grille pour obtenir un charactère
+cpValid: LDA     cptCoup,sx
+         ADDA    1,i
+         STA     cptCoup,sx
+         BR      lirGrill
+
+coulInch:STRO    msgICoup,d  ; Afficher le message d'erreur
+         BR      prochCom
 
 ;------------------------------------------------------------------------------------
 ; Enclencher le processus de modifiction pour la charactère obtenue
 ; 
-coup:    LDA     iteraY,sx   ; Si y != 0 ce n'est pas la première ligne
+coup:    LDA     commande,sx
+         STA     coulrAv,sx
+         LDA     iteraY,sx   ; Si y != 0 ce n'est pas la première ligne
          CPA     0,i         ; Alors vérifier la longueur maximale de la ligne précédente
          BRNE    isMaxX
          LDA     iteraX,sx   ; Si y == 0 (1ère ligne) et x == 0 (1ier charactère)
@@ -526,7 +522,8 @@ msgN:    .ASCII  "n: Jouer le prochain coup\n\x00"
 msgQ:    .ASCII  "q: Quitter\n\x00"
 msgIComm:.ASCII  "Commande invalide, recommencez. \n\x00"
 msgBye:  .ASCII  "Bye bye. \x00"
-msgICoup:.ASCII  "Coup Invalide: vous devez entrer une des couleurs supportees\n\x00"
+msgSCoup:.ASCII  "Coup Invalide: vous devez entrer une des couleurs supportees\n\x00"
+msgICoup:.ASCII  "Coup invalide: couleur inchangee\n\x00"
 msgWin:  .ASCII  "Vous avez gagne en \x00"
 msgNbC:  .ASCII  " coups\n\x00"
 
