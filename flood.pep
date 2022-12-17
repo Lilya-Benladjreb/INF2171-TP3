@@ -44,6 +44,7 @@ maxXAv:  .EQUATE 26          ;#2d
 maxX:    .EQUATE 28          ;#2d
 comndIni:.EQUATE 30          ;#2h
 cptCoup: .EQUATE 32          ;#2d
+cptMax:  .EQUATE 34          ;#2d
 
 ajout:   .EQUATE 0           ;#2h
 line:    .EQUATE 0           ;#2h
@@ -57,7 +58,7 @@ line:    .EQUATE 0           ;#2h
 ; Retourne:
 ; void
 ;
-         SUBSP   34,i         ;#cptCoup #comndIni #maxX #maxXAv #charGau #charHaut #iteTmpAv #couleur #coulrAv #commande #iteraY #iteraX #iterTemp #chaGrill #lenY #lenX #specsX 
+         SUBSP   36,i         ;#cptMax #cptCoup #comndIni #maxX #maxXAv #charGau #charHaut #iteTmpAv #couleur #coulrAv #commande #iteraY #iteraX #iterTemp #chaGrill #lenY #lenX #specsX 
          STRO    msgBienv,d
          STRO    msgDim,d
          STRO    msgLin,d
@@ -91,7 +92,6 @@ alimGri: CPA     lenX,sx
 
          LDX     iterTemp,sx
          STBYTEA line,sxf    ; Stocker le charactère à l'adresse de la ligne en question à la position X
-         ;CHARO   line,sxf    ;TEMP
 
          LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 
@@ -123,7 +123,6 @@ prepNext:LDA     0,i         ; Restaurer à 0 l'itération temporaire et l'itérati
          STA     specsX,d    ; Mettre à jour la distance entre le sommet de la pile et les informations de la grille
          STA     specsX,sx
 
-         ;CHARO   '\n',i      ;TEMP
          BR      newLine     ; On recommence la création d'une nouvelle ligne
 
 finLine: LDA     0,i         ; Restaurer à 0 l'itération Y
@@ -230,9 +229,6 @@ lirGrill:LDX     iterLine,s
 nxtLine: LDA     line,sx
          STA     tempLine,s  ; Stocker l'adresse de la ligne en question 
 
-;loopLir: LDX     specsX,d    ;TEMP
-;         LDX     iterTemp,sx ;TEMP
-;         CHARO   tempLine,sxf;TEMP
 loopLir: BR      isCommnd    ; Traiter la commande actuelle
 avPrChar:LDX     specsX,d    ; Se placer où les infos de la grille sont situés
 
@@ -456,18 +452,30 @@ modifier:LDX     specsX,d
          LDA     maxX,sx     ; Si maxX == longueur des X (Dernier charactère de la ligne)
          CPA     lenX,sx     ; Alors aller à la fonction maxXLen
          BREQ    maxXLen
-         ;BR      affGrill    ; TEMP
+
          BR      avPrChar    ; Sinon, passer au prochain charactère
 
 ;------------------------------------------------------------------------------------
 ; Traiter le dernier charactère modifié
 ;
-maxXLen: LDA     maxX,sx
+maxXLen: LDA     cptMax,sx   ; Si cptMax == au nombre de lignes (lenY)
+         CPA     lenY,sx     ; Alors on a fini de jouer
+         BREQ    finJeu
+         ADDA    1,i         ; Incrementer le compteur des lignes pleines
+         STA     cptMax,sx
+         LDA     maxX,sx
          STA     maxXAv,sx   ; Sauvegarder la position maximum atteinte
          LDA     0,i
          STA     maxX,sx     ; Réinitialiser la position maximal temporaire à zéro
-         ;BR      affGrill    ; TEMP
          BR      avPrChar    ; Faire comme si on passait au prochain charactère
+
+;------------------------------------------------------------------------------------
+; FIN DU JEU
+;
+finJeu:  STRO    msgWin,d    ; Afiicher le message de fin de jeu
+         DECO    cptCoup,sx  ; Et inclure le nombre de coup
+         STRO    msgNbC,d
+         STOP
 
 ;------------------------------------------------------------------------------------
 ; Déterminer si on passe au prochain charactère ou à la prochaine ligne
@@ -480,8 +488,14 @@ skipLine:LDA     maxX,sx     ; Si première ligne
          STA     maxXAv,sx   ; Sauvegarder la position maximum d'où on s'est rendu
          LDA     0,i
          STA     maxX,sx     ; Réinitialiser la position maximal temporaire à zéro
+         LDA     iteraY,sx
+         ADDA    1,i
+         CPA     lenY,sx
+         BREQ    cptMxZer
          BR      viderIte    ; Et passer à la ligne suivante
 
+cptMxZer:LDA     0,i
+         STA     cptMxZer,sx
 ;------------------------------------------------------------------------------------
 ; On passe au charactère suivant
 ;
